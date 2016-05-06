@@ -1,7 +1,11 @@
 #include "imgwarp_piecewiseaffine.h"
 #include "delaunay.h"
+#ifdef Q_OS_ANDROID
+#include "opencv2/highgui/highgui.hpp"
+#else
+#include <opencv2/highgui.hpp>
+#endif
 
-#include "highgui.h"
 
 using cv::Point2d;
 

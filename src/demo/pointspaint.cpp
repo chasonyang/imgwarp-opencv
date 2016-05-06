@@ -171,4 +171,4 @@ void PointsPaint::clear()
     setZValue(1);
 }
 
-#include "pointspaint.moc"
+//#include "pointspaint.moc"

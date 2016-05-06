@@ -148,4 +148,4 @@ void SinglePhotoView::clearAllPoints()
     this->update();
 }
 
-#include "singlephotoview.moc"
+//#include "singlephotoview.moc"

@@ -5,7 +5,7 @@
 
 #include<QGraphicsScene>
 
-#include "imgwarp_mls.h"
+#include "../lib/imgwarp_mls.h"
 #include "myimage.h"
 #include "projfile.h"
 

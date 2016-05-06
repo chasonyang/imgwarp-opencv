@@ -6,9 +6,14 @@
  *  Copyright 2010 __MyCompanyName__. All rights reserved.
  *
  */
-
-#include "cv.h"
+#include "qglobal.h"
+#include "opencv/cv.h"
+#ifdef Q_OS_ANDROID
 #include "opencv2/legacy/legacy.hpp"
+#else
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
+#endif
 #include <algorithm>
 #include <cstdlib>
 #include <map>
@@ -20,7 +25,7 @@ using std::vector;
 using std::set;
 using std::map;
 using std::sort;
-
+using cv::Subdiv2D;
 class Delaunay;
 
 struct Triangle {
@@ -31,46 +36,22 @@ struct TriangleInID {
     int v[3];
 };
 
-int pComp(const void *p1, const void *p2);
-
-bool FindTriangleFromEdge(CvSubdiv2DEdge e, set<Triangle> &V);
-
 //! Find the Delaunay division for given points(Return in int coordinates).
 template <class T>
 vector<Triangle> delaunayDiv(const vector<Point_<T> > &vP, cv::Rect boundRect) {
-    CvSubdiv2D *subdiv;
-
-    CvMemStorage *storage;
-    storage = cvCreateMemStorage(0);
-    subdiv = cvCreateSubdivDelaunay2D(boundRect, storage);
-    for (size_t e = 0; e < vP.size(); e++) {
-        cvSubdivDelaunay2DInsert(subdiv, vP[e]);
-    }
-
-    CvSeqReader reader;
-    int i, total = subdiv->edges->total;
-    int elem_size = subdiv->edges->elem_size;
-
-    cvStartReadSeq((CvSeq *)(subdiv->edges), &reader, 0);
-
-    set<Triangle> V;
-
-    for (i = 0; i < total; i++) {
-        CvQuadEdge2D *edge = (CvQuadEdge2D *)(reader.ptr);
-
-        if (CV_IS_SET_ELEM(edge)) {
-            CvSubdiv2DEdge e = (CvSubdiv2DEdge)edge;
-            FindTriangleFromEdge(e, V);
-
-            CvSubdiv2DEdge e1 = (CvSubdiv2DEdge)edge + 2;  //=next[2]
-            FindTriangleFromEdge(e1, V);
-        }
-        CV_NEXT_SEQ_ELEM(elem_size, reader);
-    }
-    cvReleaseMemStorage(&storage);
+    Subdiv2D *subdiv;
+    subdiv=new Subdiv2D(boundRect);
+    for(auto p:vP)
+        subdiv->insert(p);
+    vector < cv::Vec6f> tris;
+    subdiv->getTriangleList(tris);
     vector<Triangle> ans;
-    ans.resize(V.size());
-    std::copy(V.begin(), V.end(), ans.begin());
+    for(auto t:tris){
+        Triangle triT;
+        for(int j=0;j<3;j++)
+            triT.v[j]=cvPoint(cvRound(t[2*j]), cvRound(t[2*j+1]));
+        ans.push_back(triT);
+    }
     return ans;
 }
 
@@ -80,77 +61,6 @@ struct PointLess {
         return (pa.x < pb.x) || (pa.x == pb.x && pa.y < pb.y);
     }
 };
-
-bool operator<(const TriangleInID &a, const TriangleInID &b);
-
-template <typename T>
-bool FindTriangleIDFromEdge(CvSubdiv2DEdge e, set<TriangleInID> &V,
-                            map<Point_<T>, int, PointLess<T> > &pMap) {
-    CvSubdiv2DEdge t = e;
-    TriangleInID triT;
-    int iPointNum = 3;
-    int j;
-
-    for (j = 0; j < iPointNum; j++) {
-        CvSubdiv2DPoint *pt = cvSubdiv2DEdgeOrg(t);
-        if (!pt) break;
-        if (pMap.find(Point_<T>(pt->pt.x, pt->pt.y)) != pMap.end())
-            triT.v[j] = pMap.find(Point_<T>(pt->pt.x, pt->pt.y))->second;
-        else
-            return false;
-        t = cvSubdiv2DGetEdge(t, CV_NEXT_AROUND_LEFT);
-    }
-    if (j == iPointNum) {
-        sort(triT.v, triT.v + 3);
-        V.insert(triT);
-        return true;
-    }
-
-    return false;
-}
-
-//! Find the Delaunay division for given points(Return in point id).
-template <class T>
-vector<TriangleInID> delaunayDivInID(const vector<Point_<T> > &vP,
-                                     cv::Rect boundRect) {
-    map<Point_<T>, int, PointLess<T> > pMap;
-
-    CvSubdiv2D *subdiv;
-
-    CvMemStorage *storage;
-    storage = cvCreateMemStorage(0);
-    subdiv = cvCreateSubdivDelaunay2D(boundRect, storage);
-    for (size_t e = 0; e < vP.size(); e++) {
-        pMap[vP[e]] = e;
-        cvSubdivDelaunay2DInsert(subdiv, vP[e]);
-    }
-
-    CvSeqReader reader;
-    int i, total = subdiv->edges->total;
-    int elem_size = subdiv->edges->elem_size;
-
-    cvStartReadSeq((CvSeq *)(subdiv->edges), &reader, 0);
-
-    set<TriangleInID> V;
-
-    for (i = 0; i < total; i++) {
-        CvQuadEdge2D *edge = (CvQuadEdge2D *)(reader.ptr);
-
-        if (CV_IS_SET_ELEM(edge)) {
-            CvSubdiv2DEdge e = (CvSubdiv2DEdge)edge;
-            FindTriangleIDFromEdge(e, V, pMap);
-
-            CvSubdiv2DEdge e1 = (CvSubdiv2DEdge)edge + 2;
-            FindTriangleIDFromEdge(e1, V, pMap);
-        }
-        CV_NEXT_SEQ_ELEM(elem_size, reader);
-    }
-    cvReleaseMemStorage(&storage);
-    vector<TriangleInID> ans;
-    ans.resize(V.size());
-    std::copy(V.begin(), V.end(), ans.begin());
-    return ans;
-}
 
 template <typename T>
 void labelMatByTriInID(const vector<Point_<T> > &vP,

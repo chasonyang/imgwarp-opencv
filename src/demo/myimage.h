@@ -3,9 +3,9 @@
 
 #include <QImage>
 #include <vector>
-#include <cv.h>
+#include <opencv/cv.h>
 using cv::Mat;
-using cv::vector;
+using std::vector;
 
 class MyImage : public QImage
 {

@@ -1,7 +1,7 @@
 #ifndef IMGTRANS_MLS_H
 #define IMGTRANS_MLS_H
 
-#include "cv.h"
+#include "opencv/cv.h"
 #include <vector>
 using std::vector;
 

@@ -1,11 +1,13 @@
 #include "deformwin.h"
 #include "ui_deformwin.h"
-
-#include "imgwarp_piecewiseaffine.h"
-#include "imgwarp_mls_rigid.h"
-#include "imgwarp_mls_similarity.h"
-#include "highgui.h"
-
+#include "../lib/imgwarp_piecewiseaffine.h"
+#include "../lib/imgwarp_mls_rigid.h"
+#include "../lib/imgwarp_mls_similarity.h"
+#ifdef Q_OS_ANDROID
+#include <opencv2/highgui/highgui.hpp>
+#else
+#include <opencv2/highgui.hpp>
+#endif
 #include <QString>
 #include <QFileDialog>
 
@@ -225,4 +227,4 @@ void DeformWin::on_actExit_triggered(){
 	QApplication::exit(0);
 }
 
-#include "deformwin.moc"
+//#include "deformwin.moc"
